@@ -6,6 +6,18 @@
 [![Upstream](https://img.shields.io/badge/upstream-elirantutia%2Fvibeyard-blue)](https://github.com/elirantutia/vibeyard)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2B%20%7C%20macOS%20%7C%20Linux-lightgrey)](#supported-platforms)
 [![Node](https://img.shields.io/badge/node-%E2%89%A524-brightgreen)](.nvmrc)
+[![Latest release](https://img.shields.io/github/v/release/SourceSurfer/vibeyard-windows?include_prereleases&label=download)](https://github.com/SourceSurfer/vibeyard-windows/releases/latest)
+
+## Download
+
+Pre-built Windows binaries are available from the [**Releases**](https://github.com/SourceSurfer/vibeyard-windows/releases/latest) page.
+
+| File | Type | Size |
+|---|---|---|
+| [`Vibeyard-0.2.23-x64.exe`](https://github.com/SourceSurfer/vibeyard-windows/releases/download/v0.2.23-windows/Vibeyard-0.2.23-x64.exe) | NSIS installer | ~102 MB |
+| [`Vibeyard-0.2.23-x64-portable.exe`](https://github.com/SourceSurfer/vibeyard-windows/releases/download/v0.2.23-windows/Vibeyard-0.2.23-x64-portable.exe) | Portable, no install | ~102 MB |
+
+> **Note:** builds are unsigned. On first launch Windows SmartScreen will show a warning — click **More info → Run anyway**. Code signing is on the roadmap.
 
 </content>
 ## What is this fork?
