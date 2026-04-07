@@ -1,0 +1,40 @@
+node_modules/
+dist/
+.DS_Store
+Thumbs.db
+
+*.tsbuildinfo
+coverage/
+
+# Environment files
+.env
+.env.*
+
+# IDE metadata
+.idea/
+.vscode/
+
+# Electron-builder output
+out/
+
+# Built distributables
+*.dmg
+*.AppImage
+*.deb
+*.snap
+*.exe
+*.zip
+
+# Log files
+*.log
+
+# Local backups and scratch
+*.backup-*
+*.bak
+vibeyard.zip
+
+# Local Claude Code session state — never commit
+.claude/settings.local.json
+.claude/port-progress.md
+.claude/track-*.md
+.claude/agents/

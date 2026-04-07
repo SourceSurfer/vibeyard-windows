@@ -1,0 +1,156 @@
+import type { ProjectRecord } from '../shared/types';
+
+const { statusChangeCallbacks, mockAppState } = vi.hoisted(() => ({
+  statusChangeCallbacks: [] as Array<(sessionId: string, status: string) => void>,
+  mockAppState: {
+    activeProjectId: null as string | null,
+    projects: [] as ProjectRecord[],
+    on: vi.fn(),
+  },
+}));
+
+vi.mock('./session-activity', () => ({
+  onChange: (cb: (sessionId: string, status: string) => void) => { statusChangeCallbacks.push(cb); },
+  getStatus: vi.fn(),
+}));
+
+vi.mock('./state', () => ({ appState: mockAppState }));
+
+import {
+  init,
+  isUnread,
+  hasUnreadInProject,
+  removeSession,
+  onChange,
+  _resetForTesting,
+} from './session-unread';
+
+beforeEach(() => {
+  _resetForTesting();
+  statusChangeCallbacks.length = 0;
+  mockAppState.projects = [];
+  mockAppState.activeProjectId = null;
+  mockAppState.on.mockReset();
+});
+
+function setupProjects(): void {
+  mockAppState.projects = [
+    {
+      id: 'p1',
+      name: 'Project 1',
+      directory: '/tmp/p1',
+      sessions: [{ id: 's1', name: 'Session 1', providerId: 'claude' }],
+      activeSessionId: 's1',
+    },
+    {
+      id: 'p2',
+      name: 'Project 2',
+      directory: '/tmp/p2',
+      sessions: [{ id: 's2', name: 'Session 2', providerId: 'claude' }],
+      activeSessionId: 's2',
+    },
+  ];
+}
+
+function simulateStatusChange(sessionId: string, status: string): void {
+  for (const cb of statusChangeCallbacks) cb(sessionId, status);
+}
+
+describe('session-unread', () => {
+  it('marks session as unread when it transitions from working to waiting on a non-active project', () => {
+    setupProjects();
+    mockAppState.activeProjectId = 'p2'; // viewing project 2
+    init();
+
+    // Transition s1 (in project 1) from working → waiting
+    simulateStatusChange('s1', 'working');
+    simulateStatusChange('s1', 'waiting');
+
+    expect(isUnread('s1')).toBe(true);
+    expect(hasUnreadInProject('p1')).toBe(true);
+  });
+
+  it('does NOT mark session as unread when it is the active session of the active project', () => {
+    setupProjects();
+    mockAppState.activeProjectId = 'p1'; // viewing project 1, which has s1 as active
+    init();
+
+    simulateStatusChange('s1', 'working');
+    simulateStatusChange('s1', 'waiting');
+
+    expect(isUnread('s1')).toBe(false);
+  });
+
+  it('marks non-active session as unread even when its project is active', () => {
+    mockAppState.projects = [
+      {
+        id: 'p1',
+        name: 'Project 1',
+        directory: '/tmp/p1',
+        sessions: [
+          { id: 's1', name: 'Session 1', providerId: 'claude' },
+          { id: 's2', name: 'Session 2', providerId: 'claude' },
+        ],
+        activeSessionId: 's1', // s1 is active, not s2
+      },
+    ];
+    mockAppState.activeProjectId = 'p1';
+    init();
+
+    simulateStatusChange('s2', 'working');
+    simulateStatusChange('s2', 'waiting');
+
+    expect(isUnread('s2')).toBe(true);
+  });
+
+  it('marks active session as unread when its project is NOT the active project', () => {
+    setupProjects();
+    mockAppState.activeProjectId = 'p2'; // viewing p2, not p1
+    init();
+
+    // s1 is p1's activeSessionId, but p1 is not the active project
+    simulateStatusChange('s1', 'working');
+    simulateStatusChange('s1', 'waiting');
+
+    expect(isUnread('s1')).toBe(true);
+    expect(hasUnreadInProject('p1')).toBe(true);
+  });
+
+  it('does not mark unread for non working→waiting transitions', () => {
+    setupProjects();
+    mockAppState.activeProjectId = 'p2';
+    init();
+
+    simulateStatusChange('s1', 'waiting');
+    simulateStatusChange('s1', 'waiting');
+
+    expect(isUnread('s1')).toBe(false);
+  });
+
+  it('removeSession clears unread state', () => {
+    setupProjects();
+    mockAppState.activeProjectId = 'p2';
+    init();
+
+    simulateStatusChange('s1', 'working');
+    simulateStatusChange('s1', 'waiting');
+    expect(isUnread('s1')).toBe(true);
+
+    removeSession('s1');
+    expect(isUnread('s1')).toBe(false);
+  });
+
+  it('notifies listeners on unread change', () => {
+    setupProjects();
+    mockAppState.activeProjectId = 'p2';
+    init();
+
+    const cb = vi.fn();
+    onChange(cb);
+
+    simulateStatusChange('s1', 'working');
+    simulateStatusChange('s1', 'waiting');
+
+    expect(cb).toHaveBeenCalled();
+  });
+});

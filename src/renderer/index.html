@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src 'self' http: https:; frame-src *;">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vibeyard</title>
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="xterm.css">
+</head>
+<body>
+  <div id="app">
+    <div id="sidebar">
+      <div id="sidebar-header">
+        <button id="btn-toggle-sidebar" class="icon-btn" title="Toggle Sidebar (Cmd+B)" style="font-size:13px;">&#x25E7;</button>
+        <span class="sidebar-title">Projects</span>
+        <div class="sidebar-header-actions">
+          <button id="btn-preferences" class="icon-btn" title="Preferences">&#x2699;</button>
+          <button id="btn-add-project" class="icon-btn" title="New Project (Ctrl+Shift+P)">+</button>
+        </div>
+      </div>
+      <div id="sidebar-content">
+        <div id="project-list"></div>
+        <div id="config-sections"></div>
+        <div id="readiness-section"></div>
+        <div id="git-panel"></div>
+        <div id="session-history"></div>
+      </div>
+      <div id="sidebar-footer"></div>
+    </div>
+    <div id="sidebar-resize-handle"></div>
+    <div id="main-area">
+      <div id="tab-bar">
+        <div id="tab-list"></div>
+        <div id="git-status"></div>
+        <div id="tab-actions">
+          <button id="btn-help" class="icon-btn" title="Session Indicators Help (F1)" style="font-size:13px;">?</button>
+          <button id="btn-usage-stats" class="icon-btn" title="Usage Stats (Ctrl+Shift+U)" style="font-size:12px;">&#x2261;</button>
+          <button id="btn-toggle-terminal" class="icon-btn" title="Toggle Terminal (Ctrl+`)" style="font-size:13px;">&#x2588;</button>
+          <button id="btn-add-mcp-inspector" class="icon-btn" title="MCP Inspector" style="font-size:11px;font-weight:600;">MCP</button>
+          <button id="btn-toggle-swarm" class="icon-btn" title="Toggle Swarm Mode (Ctrl+\)">&#x229E;</button>
+          <button id="btn-add-session" class="icon-btn" title="New Session (Ctrl+Shift+N)">+</button>
+        </div>
+      </div>
+      <div id="terminal-container"></div>
+      <div id="project-terminal-resize-handle" class="hidden"></div>
+      <div id="project-terminal-panel" class="hidden">
+        <div id="project-terminal-header">
+          <span class="project-terminal-title">Terminal</span>
+          <button id="btn-close-terminal" class="icon-btn" title="Close Terminal">&times;</button>
+        </div>
+        <div id="project-terminal-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-overlay" class="hidden">
+    <div id="modal">
+      <div id="modal-title"></div>
+      <div id="modal-body"></div>
+      <div id="modal-actions">
+        <button id="modal-cancel" class="modal-btn">Cancel</button>
+        <button id="modal-confirm" class="modal-btn primary">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="index.js"></script>
+</body>
+</html>

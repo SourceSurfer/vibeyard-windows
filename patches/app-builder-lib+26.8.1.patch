@@ -1,0 +1,67 @@
+diff --git a/node_modules/app-builder-lib/out/binDownload.js b/node_modules/app-builder-lib/out/binDownload.js
+index 38672df..c6d203d 100644
+--- a/node_modules/app-builder-lib/out/binDownload.js
++++ b/node_modules/app-builder-lib/out/binDownload.js
+@@ -206,6 +206,26 @@ function getBin(cacheKey, url, checksum) {
+     return promise;
+ }
+ function doGetBin(name, url, checksum) {
++    // Windows workaround: winCodeSign-2.6.0 contains macOS symlinks which cannot
++    // be created on Windows without Developer Mode / SeCreateSymbolicLinkPrivilege.
++    // We already have a partially-extracted copy (all Windows binaries present,
++    // only darwin symlinks missing). Return that path directly.
++    if (name === "winCodeSign" && process.platform === "win32") {
++        const cacheDir = getCacheDirectory();
++        const fs_sync = require("fs");
++        const winCodeSignDir = path.join(cacheDir, "winCodeSign");
++        if (fs_sync.existsSync(winCodeSignDir)) {
++            const entries = fs_sync.readdirSync(winCodeSignDir).filter(e => !e.endsWith(".7z") && fs_sync.statSync(path.join(winCodeSignDir, e)).isDirectory());
++            // Pick the first directory that has rcedit-x64.exe
++            for (const entry of entries) {
++                const rcedit = path.join(winCodeSignDir, entry, "rcedit-x64.exe");
++                if (fs_sync.existsSync(rcedit)) {
++                    builder_util_1.log.debug({ path: path.join(winCodeSignDir, entry) }, "using pre-extracted winCodeSign (Windows symlink workaround)");
++                    return Promise.resolve(path.join(winCodeSignDir, entry));
++                }
++            }
++        }
++    }
+     const args = ["download-artifact", "--name", name];
+     if (url != null) {
+         args.push("--url", url);
+diff --git a/node_modules/app-builder-lib/out/winPackager.js b/node_modules/app-builder-lib/out/winPackager.js
+index ac1706f..bac1649 100644
+--- a/node_modules/app-builder-lib/out/winPackager.js
++++ b/node_modules/app-builder-lib/out/winPackager.js
+@@ -182,7 +182,30 @@ class WinPackager extends platformPackager_1.PlatformPackager {
+         const timer = (0, timer_1.time)("wine&sign");
+         // rcedit crashed of executed using wine, resourcehacker works
+         if (process.platform === "win32" || process.platform === "darwin") {
+-            await (0, builder_util_1.executeAppBuilder)(["rcedit", "--args", JSON.stringify(args)], undefined /* child-process */, {}, 3 /* retry three times */);
++            // Windows workaround: app-builder.exe rcedit internally downloads winCodeSign-2.6.0
++            // which contains macOS symlinks that cannot be created without Developer Mode.
++            // Use rcedit-x64.exe directly if ELECTRON_BUILDER_RCEDIT_PATH is set or if we find
++            // a pre-extracted winCodeSign in the electron-builder cache.
++            const _rceditOverride = process.env.ELECTRON_BUILDER_RCEDIT_PATH;
++            const _localAppData = process.env.LOCALAPPDATA || path.join(require("os").homedir(), "AppData", "Local");
++            const _winCodeSignCache = path.join(_localAppData, "electron-builder", "Cache", "winCodeSign");
++            let _rceditExe = null;
++            if (_rceditOverride && require("fs").existsSync(path.join(_rceditOverride, "rcedit-x64.exe"))) {
++                _rceditExe = path.join(_rceditOverride, "rcedit-x64.exe");
++            } else if (process.platform === "win32" && require("fs").existsSync(_winCodeSignCache)) {
++                const _entries = require("fs").readdirSync(_winCodeSignCache).filter(e => !e.endsWith(".7z") && require("fs").statSync(path.join(_winCodeSignCache, e)).isDirectory());
++                for (const _e of _entries) {
++                    const _candidate = path.join(_winCodeSignCache, _e, "rcedit-x64.exe");
++                    if (require("fs").existsSync(_candidate)) { _rceditExe = _candidate; break; }
++                }
++            }
++            if (_rceditExe) {
++                builder_util_1.log.debug({ rcedit: _rceditExe }, "using direct rcedit (Windows symlink workaround)");
++                const { execFileSync } = require("child_process");
++                execFileSync(_rceditExe, args, { stdio: "inherit" });
++            } else {
++                await (0, builder_util_1.executeAppBuilder)(["rcedit", "--args", JSON.stringify(args)], undefined /* child-process */, {}, 3 /* retry three times */);
++            }
+         }
+         else if (this.info.framework.name === "electron") {
+             const vendor = await (0, windows_1.getRceditBundle)((_c = this.config.toolsets) === null || _c === void 0 ? void 0 : _c.winCodeSign);
