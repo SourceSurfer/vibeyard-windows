@@ -21,6 +21,20 @@ Vibeyard is a three-process Electron application:
 The renderer is bundled by `esbuild` (IIFE, browser target). The main and preload processes are compiled by `tsc` (CommonJS). Each process has its own `tsconfig.*.json`.
 
 </content>
+### `renderer/components/file-reader.ts` — cross-platform path resolution
+
+The read-only file viewer pane (used by the Commands, Agents, Skills, and MCP sidebar items) had a `resolveFilePath` helper that only recognised POSIX absolute paths via `filePath.startsWith('/')`. On Windows the sidebar passes already-absolute paths like `C:\Users\name\project\.claude\commands\fix-css.md`, which fall through that check and get concatenated onto `project.path` with a forward slash, producing a double-rooted unreadable path. `fs.readFile` then throws and the viewer just shows an empty body.
+
+Replaced with a small `isAbsolutePath` helper that accepts:
+
+- POSIX absolute: `/home/user/...`
+- Windows drive-letter: `C:\...`, `C:/...`, etc. (regex `^[A-Za-z]:[\\/]`)
+- Windows UNC: `\\server\share\...`
+
+The relative-path join now picks `\` or `/` based on the existing separator in `project.path`, so Windows projects stay on backslashes and POSIX projects stay on forward slashes.
+
+This bug also exists in upstream — it just never surfaces on macOS/Linux because no upstream user has a project root that fails the POSIX check. Worth a focused upstream PR.
+
 ## Build pipeline changes
 
 ### `scripts/copy-assets.mjs` (new — replaces inline bash)

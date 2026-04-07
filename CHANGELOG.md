@@ -24,6 +24,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - `copy-assets` script no longer fails on Windows (was using bash `cp`/`rm`/`mkdir`)
 - `postinstall` no longer fails on Windows (was using a bash `test -f` conditional)
+- **File reader pane** (used by the Commands / Agents / Skills / MCP sidebar items) now correctly loads files when the project root is a Windows path. The upstream `resolveFilePath` only recognised POSIX absolute paths via `startsWith('/')`, so Windows-absolute paths (`C:\…`) fell through to the relative-path branch and were concatenated onto the project root with a forward slash, producing an unreadable double-rooted path. Replaced with a cross-platform `isAbsolutePath` helper that accepts POSIX absolute paths, Windows drive-letter paths (`C:\`, `D:/`), and UNC paths (`\\server\share`); the relative-path join now picks `\` or `/` based on the project root's existing separator. This bug exists in upstream too but does not surface on macOS/Linux.
 
 ### Notes
 - Patches to `app-builder-lib` are required for Windows builds and are applied automatically via `patch-package`

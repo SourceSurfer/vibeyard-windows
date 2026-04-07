@@ -69,10 +69,24 @@ function renderBody(instance: FileReaderInstance): void {
   }
 }
 
+function isAbsolutePath(filePath: string): boolean {
+  // POSIX absolute path: starts with /
+  if (filePath.startsWith('/')) return true;
+  // Windows drive-letter absolute path: C:\, D:/, etc.
+  if (/^[A-Za-z]:[\\/]/.test(filePath)) return true;
+  // Windows UNC path: \\server\share
+  if (filePath.startsWith('\\\\')) return true;
+  return false;
+}
+
 function resolveFilePath(instance: FileReaderInstance): string {
   const project = appState.activeProject;
-  if (instance.filePath.startsWith('/')) return instance.filePath;
-  return project ? `${project.path}/${instance.filePath}` : instance.filePath;
+  if (isAbsolutePath(instance.filePath)) return instance.filePath;
+  if (!project) return instance.filePath;
+  // Use the project's path separator so Windows projects stay on backslashes
+  // and POSIX projects stay on forward slashes.
+  const sep = /[\\]/.test(project.path) && !project.path.startsWith('/') ? '\\' : '/';
+  return `${project.path}${sep}${instance.filePath}`;
 }
 
 async function loadFile(instance: FileReaderInstance): Promise<void> {
