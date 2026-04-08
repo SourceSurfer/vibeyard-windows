@@ -57,7 +57,7 @@ beforeEach(() => {
 describe('getClaudeConfig', () => {
   it('returns empty config when no files exist', async () => {
     const config = await getClaudeConfig('/project');
-    expect(config).toEqual({ mcpServers: [], agents: [], skills: [], commands: [] });
+    expect(config).toEqual({ mcpServers: [], agents: [], skills: [], commands: [], hooks: [] });
   });
 
   it('reads MCP servers from user settings.json', async () => {

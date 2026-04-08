@@ -26,6 +26,7 @@ class FakeTerminal {
   setSelection(s: string): void { this._selection = s; }
   registerLinkProvider(): void {}
   onData(): void {}
+  onKey(): void {}
   open(): void {}
   write(): void {}
   focus(): void {}

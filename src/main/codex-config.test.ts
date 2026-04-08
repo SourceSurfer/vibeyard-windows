@@ -41,6 +41,7 @@ describe('getCodexConfig', () => {
       agents: [],
       skills: [],
       commands: [],
+      hooks: [],
     });
   });
 
