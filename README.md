@@ -10,14 +10,26 @@
 
 ## Download
 
-Pre-built Windows binaries are available from the [**Releases**](https://github.com/SourceSurfer/vibeyard-windows/releases/latest) page.
+Pre-built Windows binaries are available from the [**Releases**](https://github.com/SourceSurfer/vibeyard-windows/releases/latest) page. The links below always point at the **latest** release, so they don't need to be updated when a new build is published.
 
 | File | Type | Size |
 |---|---|---|
-| [`Vibeyard-0.2.23-x64.exe`](https://github.com/SourceSurfer/vibeyard-windows/releases/download/v0.2.23-windows/Vibeyard-0.2.23-x64.exe) | NSIS installer | ~102 MB |
-| [`Vibeyard-0.2.23-x64-portable.exe`](https://github.com/SourceSurfer/vibeyard-windows/releases/download/v0.2.23-windows/Vibeyard-0.2.23-x64-portable.exe) | Portable, no install | ~102 MB |
+| [`Vibeyard-0.2.23-x64.exe`](https://github.com/SourceSurfer/vibeyard-windows/releases/latest/download/Vibeyard-0.2.23-x64.exe) | NSIS installer | ~102 MB |
+| [`Vibeyard-0.2.23-x64-portable.exe`](https://github.com/SourceSurfer/vibeyard-windows/releases/latest/download/Vibeyard-0.2.23-x64-portable.exe) | Portable, no install | ~102 MB |
 
 > **Note:** builds are unsigned. On first launch Windows SmartScreen will show a warning — click **More info → Run anyway**. Code signing is on the roadmap.
+
+## What's new in this fork
+
+Beyond the Windows build pipeline, this fork has accumulated a few quality-of-life improvements that work on all platforms:
+
+- **Hooks sidebar section** — lists files in `<project>/.claude/hooks/` and `~/.claude/hooks/` alongside Commands, Agents, and Skills. Click any hook file to view it, or click the new "Open" button in the file viewer to edit it in your default editor.
+- **Click-to-insert for Commands and Agents.** Clicking `/fix-css` in the sidebar inserts `/fix-css ` directly into the active Claude Code session's input. Clicking an agent inserts `Use the agent-name subagent to `. Ctrl/Cmd+click bypasses insertion and opens the file viewer instead.
+- **Smart agent chaining.** Click two different agents within 8 seconds and the prompt becomes `Use the A and B subagents to ` (or `A, B, and C` for three). Re-clicking the same agent is silently deduped. Won't overwrite text you've typed in between.
+- **"Open in editor" button** in the file viewer header — opens the current file in your OS default application for that extension. Combined with the existing file watcher, you get a clean external-editor workflow without leaving Vibeyard.
+- **Ctrl+C copies selection in terminal panes** (Windows / Linux convention). When text is selected, Ctrl+C copies it to the clipboard. With no selection, Ctrl+C falls through to SIGINT as before. macOS is unaffected.
+
+See [`CHANGELOG.md`](CHANGELOG.md) for the full list.
 
 </content>
 ## What is this fork?

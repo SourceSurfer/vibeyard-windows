@@ -33,6 +33,19 @@ interface TerminalInstance {
 const instances = new Map<string, TerminalInstance>();
 let focusedSessionId: string | null = null;
 
+/**
+ * Tracks the wall-clock time of the last keystroke the user typed into each
+ * session's terminal. Used by the sidebar's click-to-insert feature to detect
+ * whether the user has typed anything since our last programmatic insertion —
+ * if they have, the next sidebar click starts a fresh insertion instead of
+ * extending the previous chain (so we never erase user-typed text).
+ */
+const lastUserInputTimes = new Map<string, number>();
+
+export function getLastUserInputTime(sessionId: string): number {
+  return lastUserInputTimes.get(sessionId) ?? 0;
+}
+
 export function createTerminalPane(
   sessionId: string,
   projectPath: string,
@@ -155,6 +168,26 @@ export function createTerminalPane(
   // Handle user input → PTY
   terminal.onData((data) => {
     window.vibeyard.pty.write(sessionId, data);
+  });
+
+  // Track REAL user input (keystrokes + paste) separately from PTY data flow.
+  // The sidebar's click-to-insert chain logic uses lastUserInputTimes to
+  // detect "did the user type something since our last programmatic write?".
+  //
+  // We MUST NOT use terminal.onData for this — onData fires for both
+  // keystrokes AND xterm's automatic responses to host escape-sequence
+  // queries (cursor position reports, device attribute reports, etc.).
+  // Claude Code emits such queries every few hundred ms, so onData would
+  // constantly mark the session as "user typing" and break the chain logic.
+  //
+  // terminal.onKey fires only for real DOM KeyboardEvent on the xterm canvas.
+  // Paste comes in via onData (not onKey), so we attach a separate paste
+  // listener to the terminal pane element.
+  terminal.onKey(() => {
+    lastUserInputTimes.set(sessionId, Date.now());
+  });
+  element.addEventListener('paste', () => {
+    lastUserInputTimes.set(sessionId, Date.now());
   });
 
   // Focus tracking

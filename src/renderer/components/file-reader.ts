@@ -154,8 +154,31 @@ export function createFileReaderPane(sessionId: string, filePath: string, target
   badge.className = 'file-reader-badge';
   badge.textContent = 'READ-ONLY';
 
+  const openBtn = document.createElement('button');
+  openBtn.className = 'file-reader-open-btn';
+  openBtn.type = 'button';
+  openBtn.title = 'Open in default editor';
+  openBtn.textContent = 'Open';
+  openBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const target = instances.get(sessionId);
+    const fullPath = target ? resolveFilePath(target) : filePath;
+    try {
+      const result = await window.vibeyard.app.openPath(fullPath);
+      // Electron's shell.openPath returns an empty string on success and an
+      // error message on failure. Surface failures to the user instead of
+      // failing silently.
+      if (result) {
+        alert(`Could not open file:\n${result}`);
+      }
+    } catch (err) {
+      alert(`Could not open file:\n${err instanceof Error ? err.message : String(err)}`);
+    }
+  });
+
   header.appendChild(pathSpan);
   header.appendChild(badge);
+  header.appendChild(openBtn);
 
   const isMd = isMarkdownFile(filePath);
   const instance: FileReaderInstance = {

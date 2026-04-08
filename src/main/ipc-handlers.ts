@@ -255,6 +255,25 @@ export function registerIpcHandlers(): void {
     return shell.openExternal(url);
   });
 
+  ipcMain.handle('app:openPath', async (_event, filePath: string) => {
+    // Opens a local file with the OS default application (e.g., .ps1 in
+    // PowerShell ISE / VS Code, .md in Typora / Obsidian, .sh in your default
+    // editor). Returns an empty string on success, or an error message on
+    // failure (per Electron's shell.openPath contract).
+    //
+    // Security: only allow opening files inside a `.claude` directory to avoid
+    // arbitrary file launches if a malicious sidebar item ever managed to
+    // request opening, e.g., C:\Windows\System32\cmd.exe.
+    if (typeof filePath !== 'string' || filePath.length === 0) {
+      throw new Error('Invalid file path');
+    }
+    const normalised = filePath.replace(/\\/g, '/');
+    if (!normalised.includes('/.claude/')) {
+      throw new Error('Only files inside a .claude directory may be opened');
+    }
+    return shell.openPath(filePath);
+  });
+
   ipcMain.handle('git:getStatus', (_event, projectPath: string) => getGitStatus(projectPath));
 
   ipcMain.handle('git:getRemoteUrl', (_event, projectPath: string) => getGitRemoteUrl(projectPath));

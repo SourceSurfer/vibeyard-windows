@@ -33,5 +33,6 @@ export async function getGeminiConfig(projectPath: string): Promise<ProviderConf
     agents: [],
     skills: [],
     commands: [],
+    hooks: [],
   };
 }

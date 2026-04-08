@@ -45,7 +45,8 @@ export interface McpServer { name: string; url: string; status: string; scope: '
 export interface Agent { name: string; model: string; category: 'plugin' | 'built-in'; scope: 'user' | 'project'; filePath: string }
 export interface Skill { name: string; description: string; scope: 'user' | 'project'; filePath: string }
 export interface Command { name: string; description: string; scope: 'user' | 'project'; filePath: string }
-export interface ProviderConfig { mcpServers: McpServer[]; agents: Agent[]; skills: Skill[]; commands: Command[] }
+export interface Hook { name: string; description: string; scope: 'user' | 'project'; filePath: string }
+export interface ProviderConfig { mcpServers: McpServer[]; agents: Agent[]; skills: Skill[]; commands: Command[]; hooks: Hook[] }
 export type ClaudeConfig = ProviderConfig;
 
 // --- Cost / Context (shared with renderer modules) ---

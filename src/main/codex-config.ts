@@ -173,5 +173,6 @@ export async function getCodexConfig(projectPath: string): Promise<ProviderConfi
     agents,
     skills,
     commands: [],
+    hooks: [],
   };
 }

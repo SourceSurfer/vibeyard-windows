@@ -2,7 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased] - Windows port
+## [v0.2.23-windows.1] - 2026-04-07
+
+### Added
+
+**Sidebar Hooks section.** New collapsible Hooks section in the config sidebar (alongside MCP Servers, Agents, Skills, and Commands), listing files in `<project>/.claude/hooks/` and `~/.claude/hooks/`. Reads any flat file in the folder regardless of extension (`.ps1`, `.sh`, `.py`, `.js`, `.mjs`, `.md`, …) — frontmatter is parsed only for `.md` files; the rest get an empty description. Project hooks override user hooks of the same filename. Section appears only for the Claude provider, since hook conventions are Claude Code-specific.
+
+**Click-to-insert for sidebar Commands and Agents.** Clicking a slash command in the sidebar inserts `/cmd-name ` into the active Claude session's input (with a trailing space so the user can keep typing). Clicking an agent inserts `Use the agent-name subagent to ` — the official Anthropic phrasing for delegating to a named subagent. Falls back to opening the file in the read-only viewer when there is no eligible Claude session active.
+
+**Smart agent chaining.** Clicking a second different agent within 8 seconds extends the previous insertion into a multi-agent prompt: `Use the A and B subagents to ` (and `Use the A, B, and C subagents to ` with Oxford-comma formatting for 3+). Re-clicking the same agent in the chain is silently deduped. Re-clicking the same command twice in a row is also deduped. Mechanism: per-session click chain state with a time window, real user-input timestamp tracking via xterm `onKey` and paste listener (NOT `onData`, which would be polluted by xterm's automatic responses to host escape-sequence queries), and `\x7f` (DEL — what xterm sends for the Backspace key) for in-place erase before rewriting the chain.
+
+**Ctrl/Cmd+click on a sidebar item** (Commands, Agents, MCP, Skills, Hooks) bypasses click-to-insert and opens the file in the read-only viewer instead — useful for inspecting a command or agent without invoking it.
+
+**"Open in editor" button** in the file-reader header. Opens the currently displayed file in the OS default application for that extension (`.ps1` in PowerShell ISE / VS Code, `.md` in Typora / Obsidian, etc.) via Electron's `shell.openPath`. Combined with the existing file watcher, this gives a clean external-editor workflow: click an item in the sidebar → see content in Vibeyard → click `Open` → edit in your real editor → save → Vibeyard view auto-refreshes. Security: the IPC handler restricts opening to files inside a `.claude/` directory to prevent arbitrary file launches.
+
+**Ctrl+C clipboard copy in terminal panels (Windows/Linux convention).** When text is selected in a terminal pane, pressing Ctrl+C now copies the selection to the clipboard and clears the selection (matching Windows Terminal, VS Code, ConEmu behaviour). With no selection, Ctrl+C falls through to xterm and the PTY receives `^C`/SIGINT as before. macOS is unaffected — there `Cmd+C` already handles clipboard and `Ctrl+C` is always SIGINT. The previous `Ctrl+Shift+C` shortcut still works as a no-selection-required override.
+
+### Fixed
+
+- **File reader pane** (used by the Commands / Agents / Skills / MCP / Hooks sidebar items) now correctly loads files when the project root is a Windows path. The upstream `resolveFilePath` only recognised POSIX absolute paths via `startsWith('/')`, so Windows-absolute paths (`C:\…`) fell through to the relative-path branch and were concatenated onto the project root with a forward slash, producing an unreadable double-rooted path. Replaced with a cross-platform `isAbsolutePath` helper that accepts POSIX absolute paths, Windows drive-letter paths (`C:\`, `D:/`), and UNC paths (`\\server\share`); the relative-path join now picks `\` or `/` based on the project root's existing separator. This bug exists in upstream too but does not surface on macOS/Linux.
+
+### Changed
+
+- `ProviderConfig` shared type gained a `hooks: Hook[]` field. Codex and Gemini config readers return `hooks: []` as a stub. Renderer types re-export `Hook` and the `app` namespace gains `openPath(filePath): Promise<string>`.
+
+## [v0.2.23-windows] - 2026-04-07
+
+Initial Windows fork release.
 
 ### Added
 - Windows platform support: NSIS installer and portable `.exe` builds via `electron-builder`
@@ -24,7 +50,6 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - `copy-assets` script no longer fails on Windows (was using bash `cp`/`rm`/`mkdir`)
 - `postinstall` no longer fails on Windows (was using a bash `test -f` conditional)
-- **File reader pane** (used by the Commands / Agents / Skills / MCP sidebar items) now correctly loads files when the project root is a Windows path. The upstream `resolveFilePath` only recognised POSIX absolute paths via `startsWith('/')`, so Windows-absolute paths (`C:\…`) fell through to the relative-path branch and were concatenated onto the project root with a forward slash, producing an unreadable double-rooted path. Replaced with a cross-platform `isAbsolutePath` helper that accepts POSIX absolute paths, Windows drive-letter paths (`C:\`, `D:/`), and UNC paths (`\\server\share`); the relative-path join now picks `\` or `/` based on the project root's existing separator. This bug exists in upstream too but does not surface on macOS/Linux.
 
 ### Notes
 - Patches to `app-builder-lib` are required for Windows builds and are applied automatically via `patch-package`

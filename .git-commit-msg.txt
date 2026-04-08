@@ -1,0 +1,93 @@
+feat(sidebar): Hooks section, click-to-insert with chaining, Open in editor button, Ctrl+C copy
+
+## What's in this commit
+
+This batches a release worth of cross-platform improvements on top of the
+initial Windows port (v0.2.23-windows).
+
+### Sidebar Hooks section
+
+New collapsible Hooks section in the config sidebar reads files from
+.claude/hooks/ at user and project scope, mirroring how Commands/Agents/Skills
+are listed. Reads any flat file regardless of extension; frontmatter is parsed
+only for .md. Project hooks override user hooks of the same filename. Section
+is Claude-only since hook conventions are Claude Code-specific.
+
+Touched: shared/types.ts (Hook interface, hooks field on ProviderConfig),
+renderer/types.ts (re-export), main/claude-cli.ts (readHooksFromDir, hooks
+block in getClaudeConfig), main/codex-config.ts and gemini-config.ts (stub
+hooks: [] so non-Claude providers do not crash the renderer),
+renderer/components/config-sections.ts (hookItem, Hooks section in refresh).
+
+### Click-to-insert for Commands and Agents
+
+Clicking a slash command in the sidebar inserts "/cmd-name " into the active
+Claude session's PTY input. Clicking an agent inserts "Use the agent-name
+subagent to " (the official Anthropic phrasing for delegating to a named
+subagent). Both fall back to the read-only file viewer when no eligible
+Claude session is active. Ctrl/Cmd+click bypasses insertion and opens the
+file viewer instead.
+
+### Smart agent chaining
+
+Click a second different agent within 8 seconds and the previous insertion is
+extended in place into a multi-agent prompt: "Use the A and B subagents to "
+(and Oxford-comma "A, B, and C" for 3+). Re-clicking the same agent in the
+chain is silently deduped. Same dedupe protection applies to commands.
+
+Mechanism: per-session click chain state with a time window, real user-input
+timestamp tracking via terminal.onKey + paste listener (NOT terminal.onData,
+which would be polluted by xterm's automatic responses to host escape-sequence
+queries from Claude Code), and \x7f (DEL — what xterm sends for the Backspace
+key) for in-place erase before rewriting the chain. The user-input check is
+the only safe guard against erasing text the user has typed between clicks.
+
+Touched: renderer/components/terminal-pane.ts (lastUserInputTimes Map,
+getLastUserInputTime export, terminal.onKey and paste listener for tracking),
+renderer/components/config-sections.ts (clickChains state, buildAgentChainText,
+isChainStillValid, eraseChars, tryInsertAgent, tryInsertCommand, updated
+agentItem and commandItem click handlers).
+
+### Open in editor button
+
+New button in the file-reader header that opens the currently displayed file
+in the OS default application for that extension via Electron's
+shell.openPath. Combined with the existing file watcher, this gives a clean
+external-editor workflow: click an item in the sidebar -> see content in
+Vibeyard -> click Open -> edit in real editor -> save -> view auto-refreshes.
+
+Security: the IPC handler restricts opening to files inside a .claude/
+directory to prevent arbitrary file launches if a malicious sidebar item
+ever managed to request opening, e.g., C:\\Windows\\System32\\cmd.exe.
+
+Touched: main/ipc-handlers.ts (app:openPath handler with .claude/ guard),
+preload/preload.ts (interface and implementation), renderer/types.ts
+(VibeyardApi.app.openPath), renderer/components/file-reader.ts (Open button
+in createFileReaderPane header), renderer/styles/file-viewer.css
+(.file-reader-open-btn matching the existing Rendered/Raw toggle aesthetics).
+
+### Ctrl+C clipboard copy in terminal (Windows/Linux convention)
+
+When text is selected in a terminal pane, Ctrl+C now copies the selection to
+the clipboard and clears the selection (matching Windows Terminal, VS Code,
+ConEmu behaviour). With no selection, Ctrl+C falls through to xterm and the
+PTY receives ^C / SIGINT as before. macOS is unaffected.
+
+Touched: renderer/components/terminal-utils.ts (isMacPlatform detect, Ctrl+C
+branch in attachClipboardCopyHandler).
+
+## Cross-platform vs Windows-specific
+
+Most of the changes in this commit are NOT Windows-specific — they are
+quality-of-life improvements that benefit any user. Only Ctrl+C copy is gated
+on platform (no-op on macOS). The Hooks section, click-to-insert, agent
+chaining, and Open in editor work identically on all platforms.
+
+The earlier file-reader cross-platform path resolution fix (commit 707c06b)
+remains the only purely-Windows fix in this fork beyond the build pipeline.
+
+## Test status
+
+All changes manually verified on Windows 11 against real Claude Code projects.
+The smart click-chain logic was specifically tested for the dedupe-without-
+erasing-user-input edge case.

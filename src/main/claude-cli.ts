@@ -4,9 +4,9 @@ import { homedir } from 'os';
 import { STATUS_DIR, getStatusLineScriptPath } from './hook-status';
 import { readJsonSafe, readDirSafe } from './fs-utils';
 import { loadState } from './store';
-import type { McpServer, Agent, Skill, Command, ClaudeConfig, InspectorEventType } from '../shared/types';
+import type { McpServer, Agent, Skill, Command, Hook, ClaudeConfig, InspectorEventType } from '../shared/types';
 
-export type { McpServer, Agent, Skill, Command, ClaudeConfig } from '../shared/types';
+export type { McpServer, Agent, Skill, Command, Hook, ClaudeConfig } from '../shared/types';
 
 /** Parse YAML-ish frontmatter from an .md file (between --- delimiters) */
 function parseFrontmatter(filePath: string): Record<string, string> {
@@ -135,6 +135,32 @@ function readCommandsFromDir(dirPath: string, scope: 'user' | 'project'): Comman
     commands.push({ name, description: fm.description || '', scope, filePath: path.join(dirPath, file) });
   }
   return commands;
+}
+
+/**
+ * Read hooks from a hooks directory. Unlike commands, hook files can be any
+ * executable script type (.sh, .ps1, .py, .js, .mjs) or a .md note describing
+ * a hook. We list everything in the folder; frontmatter is only parsed for
+ * .md files, the rest get an empty description.
+ */
+function readHooksFromDir(dirPath: string, scope: 'user' | 'project'): Hook[] {
+  const hooks: Hook[] = [];
+  for (const file of readDirSafe(dirPath)) {
+    const filePath = path.join(dirPath, file);
+    // Skip subdirectories — only flat files at this level.
+    try {
+      if (fs.statSync(filePath).isDirectory()) continue;
+    } catch {
+      continue;
+    }
+    let description = '';
+    if (file.endsWith('.md')) {
+      const fm = parseFrontmatter(filePath);
+      description = fm.description || '';
+    }
+    hooks.push({ name: file, description, scope, filePath });
+  }
+  return hooks;
 }
 
 /** Read skills from a directory (user or project scope) */
@@ -670,5 +696,21 @@ export async function getClaudeConfig(projectPath: string): Promise<ClaudeConfig
     }
   }
 
-  return { mcpServers, agents, skills, commands };
+  // Hooks — flat files in .claude/hooks/ at user and project scope
+  const userHooks = readHooksFromDir(path.join(claudeDir, 'hooks'), 'user');
+  const projectHooks = readHooksFromDir(path.join(projectPath, '.claude', 'hooks'), 'project');
+
+  const hookNames = new Set<string>();
+  const hooks: Hook[] = [];
+  // Project hooks override user hooks of the same filename
+  for (const list of [projectHooks, userHooks]) {
+    for (const h of list) {
+      if (!hookNames.has(h.name)) {
+        hookNames.add(h.name);
+        hooks.push(h);
+      }
+    }
+  }
+
+  return { mcpServers, agents, skills, commands, hooks };
 }
